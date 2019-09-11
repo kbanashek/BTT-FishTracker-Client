@@ -1,0 +1,7 @@
+{
+  "name": "btt-NG",
+  "integrations": {
+    "cordova": {}
+  },
+  "type": "angular"
+}
