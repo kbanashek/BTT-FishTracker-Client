@@ -38,6 +38,7 @@ export class HomePage implements OnInit {
   stateService: StateService;
   startMarker: any;
   endMarker: any;
+  pointData: any[];
 
   constructor(
     public platform: Platform,
@@ -66,7 +67,7 @@ export class HomePage implements OnInit {
     this.travelRoute.setMap(null);
   };
 
-  onMapReady(map: any) {
+  onMapReady = (map: any): void => {
     const mapOptions = {
       panControl: true,
       zoomControl: true,
@@ -79,43 +80,45 @@ export class HomePage implements OnInit {
 
     this.map = map;
     this.map.mapTypeId = google.maps.MapTypeId.HYBRID;
-    // this.map.mapTypeControl = true;
     this.map.zoomControl = true;
     this.map.zoomControlOptions = {
       position: google.maps.ControlPosition.RIGHT_TOP,
     };
-  }
+  };
 
-  loadLayerData(layerId: string) {
+  loadLayerData = (layerId: string) => {
     this.http
       .get(this.serviceURL + layerId)
-      .subscribe(layerData => this.loadMap(layerData as any[]));
-  }
+      .subscribe(layerData => this.loadMap(layerData as any[])); // TODO: Error handling
+  };
 
-  private loadMap(points: any[]) {
+  loadMap = (points: any[]) => {
+    this.pointData = points;
     this.createRoutePath(points);
     this.setStartEndPoints(points);
     this.initRoute();
-  }
+  };
 
-  private createRoutePath(points: any[]) {
-    const locationArray: any[] = [];
-
-    // I know this can be done via pipe(map())
-    points.forEach(x =>
-      locationArray.push(new google.maps.LatLng(x.Latitude, x.Longitude)),
-    );
-
+  createRoutePath = (layerPoints: any[]) => {
     this.routePath = new google.maps.Polyline({
       strokeOpacity: 0.5,
       strokeColor: 'yellow',
       path: [],
       map: this.map,
     });
-    locationArray.forEach(l => this.routePath.getPath().push(l));
-  }
 
-  private setStartEndPoints(points: any[]) {
+    this.addRoutePoints(layerPoints);
+  };
+
+  addRoutePoints = (layerPoints: any[]) => {
+    layerPoints.forEach(x =>
+      this.routePath
+        .getPath()
+        .push(new google.maps.LatLng(x.Latitude, x.Longitude)),
+    );
+  };
+
+  setStartEndPoints = (points: any[]) => {
     const initialPoint = new google.maps.LatLng(
       points[0].Latitude,
       points[0].Longitude,
@@ -125,29 +128,143 @@ export class HomePage implements OnInit {
       points[points.length - 1].Longitude,
     );
 
-    this.startMarker = new google.maps.Marker({
-      position: initialPoint,
-      map: this.map,
-      label: 'Initial Location',
-    });
-    this.endMarker = new google.maps.Marker({
-      position: endPoint,
-      map: this.map,
-      label: 'Last Location',
-    });
-  }
+    this.startMarker = this.getRouteStartStopMarker(
+      initialPoint,
+      'Initial Point',
+    );
+    this.endMarker = this.getRouteStartStopMarker(endPoint, 'Last Location');
 
-  private initRoute() {
+    this.map.panTo(initialPoint);
+    this.map.setZoom(12);
+  };
+
+  initRoute = () => {
     const routePoints = this.routePath.getPath().j;
 
-    // options
-    const travelMarkerOptions: TravelMarkerOptions = {
+    const travelMarkerOptions: TravelMarkerOptions = this.getTravelMarkers();
+
+    this.travelRoute = new TravelMarker(travelMarkerOptions);
+
+    this.travelRoute.addListener('click', e => {
+      console.log(e);
+      this.placeMarkerAndPanTo(e.latLng, this.map, this.travelRoute);
+    });
+
+    this.travelRoute.addLocation(routePoints);
+
+    setTimeout(() => this.play(), 2000);
+  };
+
+  findClosestMarker = latLng => {
+    const distances = [];
+    let closest = -1;
+
+    this.pointData.forEach((point, i) => {
+      if (this.pointData[i].Latitude && this.pointData[i].Longitude) {
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(
+            this.pointData[i].Latitude,
+            this.pointData[i].Longitude,
+          ),
+          latLng,
+        );
+        distances[i] = distance;
+        if (closest === -1 || distance < distances[closest]) {
+          closest = i;
+        }
+      }
+    });
+
+    return this.pointData[closest] ? this.pointData[closest] : null;
+  };
+
+  placeMarkerAndPanTo = (latLng, map, markerToAttach: TravelMarker) => {
+    this.emptyMarker = new google.maps.Marker({
+      position: latLng,
+      map,
+    });
+
+    this.emptyMarker.setVisible(false);
+
+    google.maps.event.addListener(this.emptyMarker, 'click', () => {
+      this.pause();
+      this.removeMarkers();
+      const closestMarker = this.findClosestMarker(latLng);
+      const infoWindowContent = this.getInfoWindowContent(closestMarker);
+      const infoWindow = new google.maps.InfoWindow();
+      google.maps.event.addListener(infoWindow, 'closeclick', () => {
+        this.emptyMarker.setMap(null);
+        this.play();
+      });
+      infoWindow.setContent(infoWindowContent);
+      infoWindow.open(map, this.emptyMarker);
+      this.previousMarker = this.emptyMarker;
+    });
+
+    google.maps.event.trigger(this.emptyMarker, 'click');
+
+    map.panTo(latLng);
+  };
+
+  getRouteStartStopMarker = (initialPoint: any, labelText: string) => {
+    return new google.maps.Marker({
+      position: initialPoint,
       map: this.map,
-      speed: 1000, // default 10 , animation speed
+      label: labelText,
+      labelOptions: {
+        color: 'white',
+        fontFamily: '',
+        fontSize: '18px',
+        fontWeight: 'normal',
+      },
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 16,
+        fillColor: 'silver',
+        fillOpacity: 0.65,
+        strokeWeight: 0.5,
+        scaledSize: {
+          width: 20,
+          height: 20,
+        },
+        color: 'white',
+        fontFamily: '',
+        fontSize: '18px',
+        fontWeight: 'normal',
+      },
+    });
+  };
+
+  getInfoWindowContent = (closestMarker: any): string => {
+    return (
+      '<div>' +
+      '<div id="content" style="font-size:15pt"><b>' +
+      closestMarker.Fish +
+      '</b></div>' +
+      '<div><strong>Fish ID:</strong> ' +
+      closestMarker.ID +
+      '</div>' +
+      '<div><strong>Area Caught: </strong>' +
+      closestMarker.GeneralLocation +
+      '</div>' +
+      '<div><strong>Fork Length:</strong> ' +
+      closestMarker.FLin +
+      '</div>' +
+      '<div><strong>Weight:</strong> ' +
+      closestMarker.WTlb +
+      'lbs</div>' +
+      '</div>'
+    );
+  };
+
+  getTravelMarkers = (): TravelMarkerOptions => {
+    return {
+      map: this.map,
+      speed: 1000,
       interval: 10,
       speedMultiplier: this.speedMultiplier,
       markerOptions: {
-        title: 'Travel Marker',
+        title: this.pointData[0].Fish,
         clickable: true,
         map: this.map,
         animation: google.maps.Animation.DROP,
@@ -162,57 +279,13 @@ export class HomePage implements OnInit {
         },
       },
     };
-
-    this.travelRoute = new TravelMarker(travelMarkerOptions);
-
-    this.travelRoute.addListener('click', e => {
-      console.log(e);
-      this.placeMarkerAndPanTo(e.latLng, this.map, this.travelRoute);
-    });
-
-    this.travelRoute.addLocation(routePoints);
-
-    setTimeout(() => this.play(), 2000);
-  }
-
-  placeMarkerAndPanTo = (latLng, map, markerToAttach: TravelMarker) => {
-    const infoContent =
-      '<div id="content">' + markerToAttach.getPosition() + '</div>';
-
-    this.emptyMarker = new google.maps.Marker({
-      position: latLng,
-      map,
-      // options:{
-      //   vi
-      // }
-    });
-
-    // google.maps.event.addListener(this.map, 'bounds_changed', () => {
-    //   window.setTimeout(() => {
-    //     map.panTo(emptyMarker.getPosition());
-    //   }, 1000);
-    // });
-
-    google.maps.event.addListener(this.emptyMarker, 'click', () => {
-      this.removeMarkers();
-
-      const infowindow = new google.maps.InfoWindow();
-      infowindow.setContent(infoContent);
-      infowindow.open(map, this.emptyMarker);
-
-      this.previousMarker = this.emptyMarker;
-    });
-
-    google.maps.event.trigger(this.emptyMarker, 'click');
-
-    map.panTo(latLng);
   };
 
-  private removeMarkers() {
+  removeMarkers = (): void => {
     if (this.previousMarker && this.previousMarker.setMap) {
       this.previousMarker.setMap(null);
     }
-  }
+  };
 
   play() {
     this.removeMarkers();

@@ -15,20 +15,6 @@ import { StateService } from './state.service';
   styleUrls: ['app.component.scss'],
 })
 export class AppComponent {
-  public appPages = [
-    {
-      title: 'Home',
-      url: '/home',
-      icon: 'home',
-    },
-    {
-      title: 'List',
-      url: '/list',
-      icon: 'list',
-    },
-  ];
-  itemsList: any;
-
   @Output() selectedLayer: EventEmitter<any> = new EventEmitter();
 
   constructor(
@@ -41,6 +27,7 @@ export class AppComponent {
     this.initializeApp();
   }
 
+  itemsList: any;
   private url = 'https://btt-api.herokuapp.com/tarpons?_limit=20';
 
   toggleChange = selectedItem => {
