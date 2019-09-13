@@ -9,8 +9,14 @@ import {
 } from 'travel-marker';
 
 import { HttpClient } from '@angular/common/http';
-import { StateService } from '../state.service';
+import { StateService, RepeatingServiceCall } from '../state.service';
 import { of } from 'rxjs/internal/observable/of';
+import { serviceURL } from '../app.component';
+import { fromEvent } from 'rxjs/internal/observable/fromEvent';
+import { tap } from 'rxjs/operators';
+import { Observable } from 'rxjs/internal/Observable';
+
+import { timer } from 'rxjs/internal/observable/timer';
 
 declare var google: any;
 
@@ -30,7 +36,6 @@ export class HomePage implements OnInit {
   directionsService: any;
   travelRoute: TravelMarker = null;
   speedMultiplier = 1;
-  serviceURL = 'https://btt-api.herokuapp.com/tarpons?ID=';
   infoWindow: any;
   previousMarker: any;
   emptyMarker: any;
@@ -39,6 +44,10 @@ export class HomePage implements OnInit {
   startMarker: any;
   endMarker: any;
   pointData: any[];
+
+  caller = new RepeatingServiceCall<any>(2000);
+  sub: any;
+  timer: any;
 
   constructor(
     public platform: Platform,
@@ -88,7 +97,7 @@ export class HomePage implements OnInit {
 
   loadLayerData = (layerId: string) => {
     this.http
-      .get(this.serviceURL + layerId)
+      .get(serviceURL + '?ID=' + layerId)
       .subscribe(layerData => this.loadMap(layerData as any[])); // TODO: Error handling
   };
 
@@ -146,11 +155,13 @@ export class HomePage implements OnInit {
     this.travelRoute = new TravelMarker(travelMarkerOptions);
 
     this.travelRoute.addListener('click', e => {
-      console.log(e);
-      this.placeMarkerAndPanTo(e.latLng, this.map, this.travelRoute);
+      this.placeMarkerAndPanTo(e.latLng, this.map);
     });
 
     this.travelRoute.addLocation(routePoints);
+
+    this.timer = timer(2000, 3000);
+    this.timer.subscribe(t => this.onTimeOut());
 
     setTimeout(() => this.play(), 2000);
   };
@@ -178,27 +189,16 @@ export class HomePage implements OnInit {
     return this.pointData[closest] ? this.pointData[closest] : null;
   };
 
-  placeMarkerAndPanTo = (latLng, map, markerToAttach: TravelMarker) => {
-    this.emptyMarker = new google.maps.Marker({
-      position: latLng,
-      map,
-    });
+  onTimeOut() {
+    //console.log('panning:' + this.travelRoute.getPosition());
+    this.map.panTo(this.travelRoute.getPosition());
+  }
 
-    this.emptyMarker.setVisible(false);
+  placeMarkerAndPanTo = (latLng, map) => {
+    this.getEmptyMarker(latLng, map);
 
     google.maps.event.addListener(this.emptyMarker, 'click', () => {
-      this.pause();
-      this.removeMarkers();
-      const closestMarker = this.findClosestMarker(latLng);
-      const infoWindowContent = this.getInfoWindowContent(closestMarker);
-      const infoWindow = new google.maps.InfoWindow();
-      google.maps.event.addListener(infoWindow, 'closeclick', () => {
-        this.emptyMarker.setMap(null);
-        this.play();
-      });
-      infoWindow.setContent(infoWindowContent);
-      infoWindow.open(map, this.emptyMarker);
-      this.previousMarker = this.emptyMarker;
+      this.pauseAndShowInfoWindow(latLng, map);
     });
 
     google.maps.event.trigger(this.emptyMarker, 'click');
@@ -287,13 +287,46 @@ export class HomePage implements OnInit {
     }
   };
 
+  private getEmptyMarker(latLng: any, map: any) {
+    this.emptyMarker = new google.maps.Marker({
+      position: latLng,
+      map,
+    });
+    this.emptyMarker.setVisible(false);
+  }
+
+  private pauseAndShowInfoWindow(latLng: any, map: any) {
+    this.travelRoute.pause();
+    this.removeMarkers();
+    const closestMarker = this.findClosestMarker(latLng);
+    const infoWindowContent = this.getInfoWindowContent(closestMarker);
+    const infoWindow = new google.maps.InfoWindow();
+    google.maps.event.addListener(infoWindow, 'closeclick', () => {
+      this.emptyMarker.setMap(null);
+      this.play();
+    });
+    infoWindow.setContent(infoWindowContent);
+    infoWindow.open(map, this.emptyMarker);
+    this.previousMarker = this.emptyMarker;
+  }
+
   play() {
     this.removeMarkers();
     this.travelRoute.play();
+
+    // of(this.travelRoute.play())
+    //   .pipe(
+    //     tap(() => {
+    //       console.log('PLAYING');
+    //     }),
+    //   )
+    //   .subscribe(() => this.caller.start());
   }
 
   pause() {
-    this.travelRoute.pause();
+    of(this.placeMarkerAndPanTo(this.travelRoute.getPosition(), this.map))
+      .pipe(tap(() => console.log('STOPPED')))
+      .subscribe(() => this.caller.stop());
   }
 
   reset() {

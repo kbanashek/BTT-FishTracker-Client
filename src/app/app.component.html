@@ -13,14 +13,13 @@
       <ion-content>
         <ion-list>
           <ion-menu-toggle auto-hide="false">
-            <ion-item button *ngFor="let p of itemsList">
-              <ion-label>{{ p.ID }}</ion-label>
-              <ion-toggle
-                (ionChange)="toggleChange(p)"
-                [(ngModel)]="p.checked"
-                name="{{ p.ID }}"
-                color="light"
-              ></ion-toggle>
+            <ion-item
+              button
+              [color]="p.namedColor"
+              *ngFor="let p of itemsList"
+              (click)="toggleChange(p)"
+            >
+              <div style="width: 80%; text-align: center;">{{ p.ID }}</div>
             </ion-item>
           </ion-menu-toggle>
         </ion-list>
