@@ -1,5 +1,5 @@
 # BTT-FishTracker-Client
 Bonefish and Tarpon Trust Fishtracker Application
 
-Ionic application build to allow for the rendering of fish migrations on google maps(AGM).
+Ionic mapping application that provides the ability visualize fish migration paths on google maps(AGM).
 
