@@ -1,13 +1,15 @@
 import { Component, Output, EventEmitter } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { Platform } from '@ionic/angular';
+import { Platform, ModalController } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
 import { StatusBar } from '@ionic-native/status-bar/ngx';
 
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { StateService } from './state.service';
+import { SplashModalPage } from './splash-modal/splash-modal.page';
+import { ModalOptions } from '@ionic/core';
 
 export const serviceURL =
   'http://ec2-184-73-138-203.compute-1.amazonaws.com:3000/tarpons';
@@ -27,6 +29,7 @@ export class AppComponent {
     private statusBar: StatusBar,
     private http: HttpClient,
     private state: StateService,
+    private modalController: ModalController,
   ) {
     this.initializeApp();
   }
@@ -49,7 +52,8 @@ export class AppComponent {
   initializeApp = () => {
     this.platform.ready().then(() => {
       this.statusBar.styleDefault();
-      this.splashScreen.hide();
+
+      this.openModal();
 
       this.getTarpons().subscribe(
         results => {
@@ -63,6 +67,22 @@ export class AppComponent {
       );
     });
   };
+
+  async openModal() {
+    const myModalOptions: ModalOptions = {
+      cssClass: 'select-modal',
+      component: SplashModalPage,
+      showBackdrop: true,
+      backdropDismiss: true,
+      animated: true,
+    };
+
+    const modal = await this.modalController.create(myModalOptions);
+
+    modal.onDidDismiss().then(dataReturned => {});
+
+    return await modal.present();
+  }
 
   log = item => {
     console.log(item);

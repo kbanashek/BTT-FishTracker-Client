@@ -13,10 +13,11 @@ import { StateService, RepeatingServiceCall } from '../state.service';
 import { of } from 'rxjs/internal/observable/of';
 import { serviceURL } from '../app.component';
 import { fromEvent } from 'rxjs/internal/observable/fromEvent';
-import { tap } from 'rxjs/operators';
+import { tap, takeUntil } from 'rxjs/operators';
 import { Observable } from 'rxjs/internal/Observable';
 
 import { timer } from 'rxjs/internal/observable/timer';
+import { Subject } from 'rxjs';
 
 declare var google: any;
 
@@ -44,7 +45,7 @@ export class HomePage implements OnInit {
   startMarker: any;
   endMarker: any;
   pointData: any[];
-
+  subject = new Subject();
   caller = new RepeatingServiceCall<any>(2000);
   sub: any;
   timer: any;
@@ -59,6 +60,7 @@ export class HomePage implements OnInit {
   }
 
   ngOnInit() {
+    this.timer = timer(2000, 3000);
     this.stateService.getSelectedLayer.subscribe(selectedLayer => {
       if (selectedLayer) {
         if (this.routePath) {
@@ -160,8 +162,7 @@ export class HomePage implements OnInit {
 
     this.travelRoute.addLocation(routePoints);
 
-    this.timer = timer(2000, 3000);
-    this.timer.subscribe(t => this.onTimeOut());
+    this.timer.pipe(takeUntil(this.subject)).subscribe(t => this.onTimeOut());
 
     setTimeout(() => this.play(), 2000);
   };
@@ -238,9 +239,9 @@ export class HomePage implements OnInit {
   getInfoWindowContent = (closestMarker: any): string => {
     return (
       '<div>' +
-      '<div id="content" style="font-size:15pt"><b>' +
-      closestMarker.Fish +
-      '</b></div>' +
+      // '<div id="content" style="font-size:15pt"><b>' +
+      // closestMarker.Fish +
+      // '</b></div>' +
       '<div><strong>Fish ID:</strong> ' +
       closestMarker.ID +
       '</div>' +
@@ -313,7 +314,7 @@ export class HomePage implements OnInit {
   play() {
     this.removeMarkers();
     this.travelRoute.play();
-
+    this.timer.pipe(takeUntil(this.subject)).subscribe(t => this.onTimeOut());
     // of(this.travelRoute.play())
     //   .pipe(
     //     tap(() => {
@@ -325,8 +326,11 @@ export class HomePage implements OnInit {
 
   pause() {
     of(this.placeMarkerAndPanTo(this.travelRoute.getPosition(), this.map))
-      .pipe(tap(() => console.log('STOPPED')))
-      .subscribe(() => this.caller.stop());
+      // .pipe(tap(() => this.timer.unsubscribe()))
+      .subscribe(() => {
+        this.caller.stop();
+        this.subject.next();
+      });
   }
 
   reset() {

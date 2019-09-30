@@ -75,3 +75,9 @@
   --ion-color-light-shade: #d7d8da;
   --ion-color-light-tint: #f5f6f9;
 }
+
+.select-modal .modal-wrapper {
+  background: rgba(0, 0, 0, 0.5) !important;
+  padding: 20% 10% !important;
+  width: 60%;
+}

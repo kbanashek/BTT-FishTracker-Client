@@ -10,7 +10,7 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { AgmCoreModule } from '@agm/core';
 import { FormsModule } from '@angular/forms';
-import { HomePage } from './home/home.page';
+import { SplashModalPageModule } from './splash-modal/splash-modal.module';
 
 @NgModule({
   declarations: [AppComponent],
@@ -23,6 +23,7 @@ import { HomePage } from './home/home.page';
       apiKey: 'AIzaSyDgp1DcuImkkO2DFxdi4EVhxbC7fZqfABI',
     }),
     FormsModule,
+    SplashModalPageModule,
   ],
 
   providers: [
