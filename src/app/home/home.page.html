@@ -4,26 +4,33 @@
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
     <ion-buttons slot="primary">
-      <ion-button (click)="play()">
+      <ion-button
+        (click)="play()"
+        [color]="selectItem === 'play' ? 'success' : 'danger'"
+      >
         <ion-icon name="play"></ion-icon>
       </ion-button>
-      <ion-button (click)="pause()">
+
+      <ion-button
+        (click)="pause()"
+        [color]="selectItem === 'pause' ? 'success' : 'danger'"
+      >
         <ion-icon name="pause"></ion-icon>
       </ion-button>
-      <ion-button (click)="reset()">
+      <ion-button (click)="reset()" [color]="'medium'">
         <ion-icon name="refresh"></ion-icon>
       </ion-button>
-      <ion-button (click)="prev()">
+      <ion-button (click)="prev()" [color]="'medium'">
         <ion-icon name="rewind"></ion-icon>
       </ion-button>
-      <ion-button (click)="next()">
+      <ion-button (click)="next()" [color]="'medium'">
         <ion-icon name="fastforward"></ion-icon>
       </ion-button>
 
-      <ion-button (click)="fast()">
+      <ion-button (click)="fast()" [color]="'medium'">
         <ion-icon name="trending-up"></ion-icon>
       </ion-button>
-      <ion-button (click)="slow()">
+      <ion-button (click)="slow()" [color]="'medium'">
         <ion-icon name="trending-down"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -35,6 +42,12 @@
 </ion-header>
 
 <ion-content>
+  <div class="controls">
+    <div>{{ markerDate }}</div>
+    <!-- <div>Current Record ID(for testing): {{ currentRecordID }}</div>
+    <div>LatLong(for testing): {{ currentLatLong }}</div> -->
+  </div>
+
   <agm-map
     [style.height.px]="height"
     [latitude]="lat"
