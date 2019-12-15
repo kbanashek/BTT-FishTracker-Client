@@ -10,7 +10,6 @@
       >
         <ion-icon name="play"></ion-icon>
       </ion-button>
-
       <ion-button
         (click)="pause()"
         [color]="selectItem === 'pause' ? 'success' : 'danger'"
@@ -42,17 +41,26 @@
 </ion-header>
 
 <ion-content>
-  <div class="controls">
-    <div>{{ markerDate }}</div>
-    <!-- <div>Current Record ID(for testing): {{ currentRecordID }}</div>
-    <div>LatLong(for testing): {{ currentLatLong }}</div> -->
+  <!-- <div class="controls" *ngIf="markerDate">
+    <ion-text>Last Observation: {{ markerDate }}</ion-text>
+  </div> -->
+  <div class="controls" *ngIf="markerDates.length">
+    <div class="timeline">
+      <div class="container right" *ngFor="let markers of markerDates">
+        <div class="content">
+          <div>
+            {{ markers.Season}} {{ markers.Display_Date.split(" ")[1] }}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-
   <agm-map
     [style.height.px]="height"
     [latitude]="lat"
     [longitude]="lng"
     (mapReady)="onMapReady($event)"
+    [maxZoom]="14"
   >
   </agm-map>
 </ion-content>

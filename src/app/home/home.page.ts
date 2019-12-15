@@ -47,6 +47,7 @@ export class HomePage implements OnInit {
   startMarker: any;
   endMarker: any;
   pointData: any[];
+  markerDates: any[] = [];
   subject = new Subject();
   caller = new RepeatingServiceCall<any>(2000);
   sub: any;
@@ -142,16 +143,20 @@ export class HomePage implements OnInit {
     this.startMarker = this.getRouteStartStopMarker(
       initialPoint,
       'General Location',
-      44,
+      100,
     );
     this.endMarker = this.getRouteStartStopMarker(endPoint, 'Last Location');
 
     this.map.panTo(initialPoint);
+
     this.map.setZoom(12);
+
+    // const maxZoomService = new google.maps.MaxZoomService();
+    // this.map.addListener('click', showMaxZoom);
   };
 
   initRoute = () => {
-    const routePoints = this.routePath.getPath().j;
+    const routePoints = this.routePath.getPath().g;
 
     const travelMarkerOptions: TravelMarkerOptions = this.getTravelMarkers();
     this.travelRoute = new TravelMarker(travelMarkerOptions);
@@ -165,7 +170,6 @@ export class HomePage implements OnInit {
       .pipe(takeUntil(this.subject))
       .subscribe(() => this.onMapUpdate());
 
-    this.activeNow('play');
     setTimeout(() => this.play(), 2000);
   };
 
@@ -190,106 +194,61 @@ export class HomePage implements OnInit {
   };
 
   findClosestMarker = latLng => {
-    const closest = new cSnapToRoute(this.map, this.routePath);
-    const x = closest.getClosestLatLng(latLng);
-    const proj = this.map.getProjection();
-    //console.log('Point:  ' + proj.fromLatLngToPoint(x));
+    const distances = [];
+    let closest = -1;
 
-    const xs = closest.distanceToLines(latLng);
-    return this.closest(x, this.pointData);
+    // const filteredPointData = this.pointData.filter(
+    //   x => x.RecordID >= this.currentRecordID,
+    // );
 
-    // const distances = [];
-    // let closest = -1;
+    this.pointData.forEach((point, i) => {
+      if (point.Latitude && point.Longitude) {
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(point.Latitude, point.Longitude),
+          latLng,
+        );
 
-    // // const filteredPointData = this.pointData.filter(
-    // //   x => x.RecordID >= this.currentRecordID,
-    // // );
+        distances[i] = distance;
 
-    // this.pointData.forEach((point, i) => {
-    //   if (point.Latitude && point.Longitude) {
-    //     const distance = google.maps.geometry.spherical.computeDistanceBetween(
-    //       new google.maps.LatLng(point.Latitude, point.Longitude),
-    //       latLng,
-    //     );
+        if (closest === -1 || distance < distances[closest]) {
+          closest = i;
+        }
+      }
+    });
 
-    //     distances[i] = distance;
+    if (this.pointData[closest].RecordID === 894) {
+      console.log(distances);
+    }
 
-    //     if (closest === -1 || distance < distances[closest]) {
-    //       closest = i;
-    //     }
-    //   }
-    // });
-
-    // if (this.pointData[closest].RecordID === 894) {
-    //   console.log(distances);
-    // }
-
-    // return this.pointData[closest] ? this.pointData[closest] : null;
+    return this.pointData[closest] ? this.pointData[closest] : null;
   };
 
   clearMapLayerData = () => {
     this.markerDate = '';
     this.currentRecordID = null;
     this.currentLatLong = null;
+    this.markerDates = [];
   };
 
-  onMapUpdate() {
-    // const closestMarker = this.findClosestMarker(
-    //   this.travelRoute.getPosition(),
-    // );
+  inRange(x, min, max) {
+    return (x - min) * (x - max) <= 0;
+  }
 
-    // console.log(
-    //   'this.travelRoute.lat():[ ' +
-    //     this.travelRoute
-    //       .getPosition()
-    //       .lat()
-    //       .toFixed(2)
-    //       .toString() +
-    //     ' ]',
-    // );
-    // console.log(
-    //   'this.travelRoute.lng():[ ' +
-    //     this.travelRoute
-    //       .getPosition()
-    //       .lng()
-    //       .toFixed(0)
-    //       .toString() +
-    //     ' ]',
-    // );
-    const fixSearch = 2;
-    const foundPoint = this.pointData.find(
-      item =>
-        item.Latitude.toFixed(fixSearch) ===
-          this.travelRoute
-            .getPosition()
-            .lat()
-            .toFixed(fixSearch) &&
-        item.Longitude.toFixed(0) ===
-          this.travelRoute
-            .getPosition()
-            .lng()
-            .toFixed(0),
-    );
+  onMapUpdate() {
+    const currentMarker = this.travelRoute.marker;
+    const closestMarkerIndex = currentMarker.index;
+    console.log(closestMarkerIndex);
 
     if (
-      (foundPoint && foundPoint.ID > this.currentRecordID) ||
-      !this.currentRecordID
+      !this.markerDates.some(
+        x => x.Display_Date === this.pointData[closestMarkerIndex].Display_Date,
+      )
     ) {
-      console.log(
-        'foundPoint.Latitude:[ ' + foundPoint.Latitude.toFixed(3) + ' ]',
-      );
-      console.log(
-        'foundPoint.Longitude:[ ' + foundPoint.Longitude.toFixed(3) + ' ]',
-      );
-      console.log('foundPoint.ID:[ ' + foundPoint.ID + ' ]');
-      console.log('foundPoint.DisplayDate:[ ' + foundPoint.Display_Date + ' ]');
-      this.currentRecordID = foundPoint.ID;
-      this.markerDate = foundPoint.Display_Date;
-      this.currentLatLong =
-        foundPoint.Latitude.toFixed(3).toString() +
-        '  ' +
-        foundPoint.Longitude.toFixed(3).toString();
+      this.markerDates.push(this.pointData[closestMarkerIndex]);
     }
+
+    this.currentRecordID = currentMarker.RecordID;
+    this.markerDate = this.pointData[closestMarkerIndex].Display_Date;
 
     this.map.panTo(this.travelRoute.getPosition());
   }
@@ -329,10 +288,10 @@ export class HomePage implements OnInit {
         fillOpacity: 0.65,
         strokeWeight: 0.5,
         scaledSize: {
-          width: 20,
-          height: 20,
+          width: 60,
+          height: 60,
         },
-        color: 'white',
+        color: 'black',
         fontFamily: '',
         fontSize: '18px',
         fontWeight: 'normal',
@@ -347,13 +306,13 @@ export class HomePage implements OnInit {
       closestMarker.ID +
       '</div>' +
       '<div style="padding:5px"><strong>Area Caught: </strong>' +
-      closestMarker.GeneralLocation2 +
+      closestMarker['General.Location'] +
       '</div>' +
       '<div style="padding:5px"><strong>Fork Length:</strong> ' +
-      closestMarker.FLin +
+      closestMarker['FL.in'] +
       '</div>' +
       '<div style="padding:5px" ><strong>Weight:</strong> ' +
-      closestMarker.WTlb +
+      closestMarker['WT.lb'] +
       'lbs</div>';
 
     if (closestMarker.Guide !== '') {
@@ -455,7 +414,7 @@ export class HomePage implements OnInit {
   next() {
     this.travelRoute.pause();
     this.travelRoute.next();
-    console.log(this.travelRoute.getPosition().toString()); //TODO USE THIS TO LOOK UP POINTDATE.DATETIME
+    console.log(this.travelRoute.getPosition().toString()); // TODO USE THIS TO LOOK UP POINTDATE.DATETIME
     this.removeMarkers();
   }
 

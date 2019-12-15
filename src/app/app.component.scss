@@ -12,3 +12,19 @@ ion-menu {
     padding-left: 100px;
   }
 }
+
+#timeline-wrap {
+  margin: 0% !important;
+  position: relative;
+  background-color: blue !important;
+}
+
+.timeline-label {
+  text-align: center;
+  position: absolute;
+  width: 150px !important;
+  bottom: 55px;
+  color: white !important;
+  font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-weight: 400;
+}

@@ -24,3 +24,34 @@
 @import '~@ionic/angular/css/text-alignment.css';
 @import '~@ionic/angular/css/text-transformation.css';
 @import '~@ionic/angular/css/flex-utils.css';
+
+@import url('https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css');
+
+#timeline-wrap {
+  margin: 2% 4% 1% !important;
+  position: relative;
+}
+
+.timeline-label {
+  text-align: center;
+  position: absolute;
+  width: 150px !important;
+  top: 25px;
+  margin-left: 24px;
+  font-size: 12pt;
+  color: black !important;
+  //   font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+}
+
+.marker {
+  z-index: 1;
+  color: #fff;
+  width: 50px;
+  height: 50px;
+  line-height: 50px;
+  font-size: 1.4em;
+  text-align: center;
+  position: relative;
+  background-color: #999;
+  border-radius: 50%;
+}
