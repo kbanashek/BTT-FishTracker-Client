@@ -11,8 +11,8 @@ import { StateService } from './state.service';
 import { SplashModalPage } from './splash-modal/splash-modal.page';
 import { ModalOptions } from '@ionic/core';
 
-export const serviceURL =
-  'http://ec2-184-73-138-203.compute-1.amazonaws.com:3000/tarpons';
+export const serviceURL = 'https://btt-api.herokuapp.com/tarpons';
+// 'http://ec2-184-73-138-203.compute-1.amazonaws.com:3000/tarpons';
 
 @Component({
   selector: 'app-root',

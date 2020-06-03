@@ -15,7 +15,10 @@ const routes: Routes = [
     loadChildren: () =>
       import('./home/home.module').then(m => m.HomePageModule),
   },
-  { path: 'splash-modal', loadChildren: './splash-modal/splash-modal.module#SplashModalPageModule' },
+  {
+    path: 'splash-modal',
+    loadChildren: './splash-modal/splash-modal.module#SplashModalPageModule',
+  },
 ];
 
 @NgModule({

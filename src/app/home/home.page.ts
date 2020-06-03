@@ -9,6 +9,7 @@ import { takeUntil } from 'rxjs/operators';
 import { timer } from 'rxjs/internal/observable/timer';
 import { Subject } from 'rxjs';
 import { cSnapToRoute } from './distance';
+import { includes } from 'lodash';
 
 declare var google: any;
 
@@ -156,7 +157,8 @@ export class HomePage implements OnInit {
   };
 
   initRoute = () => {
-    const routePoints = this.routePath.getPath().g;
+    const routePoints = this.routePath.getPath();
+
 
     const travelMarkerOptions: TravelMarkerOptions = this.getTravelMarkers();
     this.travelRoute = new TravelMarker(travelMarkerOptions);
@@ -234,6 +236,13 @@ export class HomePage implements OnInit {
     return (x - min) * (x - max) <= 0;
   }
 
+  addToMarkersDates = markerDate => {
+    this.markerDates.push(markerDate);
+    if (this.markerDates.length > 7) {
+      this.markerDates.shift();
+    }
+  };
+
   onMapUpdate() {
     const currentMarker = this.travelRoute.marker;
     const closestMarkerIndex = currentMarker.index;
@@ -241,15 +250,17 @@ export class HomePage implements OnInit {
 
     if (
       !this.markerDates.some(
-        x => x.Display_Date === this.pointData[closestMarkerIndex].Display_Date,
+        x =>
+          x.Display_Date.split(' ')[1] ===
+            this.pointData[closestMarkerIndex].Display_Date.split(' ')[1] &&
+          x.Season === this.pointData[closestMarkerIndex].Season,
       )
     ) {
-      this.markerDates.push(this.pointData[closestMarkerIndex]);
+      this.addToMarkersDates(this.pointData[closestMarkerIndex]);
     }
 
     this.currentRecordID = currentMarker.RecordID;
     this.markerDate = this.pointData[closestMarkerIndex].Display_Date;
-
     this.map.panTo(this.travelRoute.getPosition());
   }
 
