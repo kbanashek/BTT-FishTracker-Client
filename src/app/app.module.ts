@@ -23,7 +23,7 @@ import { CacheService } from './services/loader/cache-service';
     IonicModule.forRoot(),
     AppRoutingModule,
     AgmCoreModule.forRoot({
-      apiKey: 'AIzaSyDgp1DcuImkkO2DFxdi4EVhxbC7fZqfABI',
+      apiKey: 'AIzaSyA_lt-ANaBp8xELvF6owyyIjTvZIzxBhXc',
     }),
     FormsModule,
     SplashModalPageModule,
